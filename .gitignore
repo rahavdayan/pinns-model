@@ -133,3 +133,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# jupyter notebook files
+src/cooling/regularisation_ex.ipynb
+src/cooling/temp_pred.ipynb
