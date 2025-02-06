@@ -44,8 +44,7 @@ def magnetic_field(x):
     """H(x) relationship using polynomial"""
     return 5*A*(x**4) + 4*B*(x**3) + 3*C*(x**2) + 2*D*x + E
 
-def magnetization_deriv(x):
-    """dM/dx using chain rule"""
-    H = magnetic_field(x)
-    alpha = (mu_0 * m * H)/(k_B * T)
-    return Ms * (langevin(alpha) - 1/alpha) * (mu_0 * m)/(k_B * T)
+def magnetic_field_deriv(x):
+    """dH/dx is polynomial"""
+    return A*(x**5) + B*(x**4) + C*(x**3) + D*(x**2) + E*x + F
+
