@@ -21,24 +21,31 @@ E = 10**13 * -0.000001724024410
 F = 10**13 * 0.000000007058447
 
 # Magnetic parameters
-Ms = 79.57747* 70000  # Saturation magnetization in Oe
 k_B = 1.380649e-23  # Boltzmann constant
 T = 293  # Room temperature in Kelvin
 mu_0 = 4*np.pi*1e-7  # Vacuum permeability
-m = 1e-19  # Magnetic moment of particle (this is an estimate, should be from paper)
+d = 76*10**-9  # Magnetic moment of particle (this is an estimate, should be from paper)
+M_d = 4.46*10**5  # Magnetic moment of particle (this is an estimate, should be from paper)
+
+# Droplet parameters
+r = 0.001                           # Radius of droplet in [m]
+V = (4/3)*np.pi*(r**3)              # Volume of droplet in [m^3]
+
 
 def langevin(x):
     """Langevin function L(x) = coth(x) - 1/x"""
     # Add small epsilon to prevent division by zero
     eps = 1e-10
     x = x + eps
+
     return 1/torch.tanh(x) - 1/x
 
 def magnetization(x):
     """M(H) relationship using Langevin function"""
     H = magnetic_field(x)
-    alpha = (mu_0 * m * H)/(k_B * T)
-    return Ms * langevin(alpha)
+    alpha = (mu_0 * M_d* d**3* np.pi/6 * H)/(k_B * T)
+    alpha_tensor = torch.tensor(alpha)
+    return M_d* V * langevin(alpha_tensor)
 
 def magnetic_field(x):
     """H(x) relationship using polynomial"""
