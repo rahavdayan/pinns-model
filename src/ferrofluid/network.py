@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as thdat
+import numpy as np
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -51,23 +52,34 @@ class Net(nn.Module):
         return out
 
     def fit(self, X, y):
-        Xt = np_to_th(X)
-        yt = np_to_th(y)
+        min_X, max_X = np.min(X), np.max(X)
+        min_y, max_y = np.min(y), np.max(y)
+
+        normalized_X = (X - min_X) / (max_X - min_X)
+        normalized_Y = (y - min_y) / (max_y - min_y)
+
+        normalized_Xt = np_to_th(normalized_X)
+        normalized_yt = np_to_th(normalized_Y)
 
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
         losses = []
+
         for ep in range(self.epochs):
             optimiser.zero_grad()
-            outputs = self.forward(Xt)
-            loss = self.loss(yt, outputs)
+            outputs = self.forward(normalized_Xt)
+            data_loss = self.loss(normalized_yt, outputs)
+
             if self.loss2:
-                loss += self.loss2_weight + self.loss2_weight * self.loss2(self)
+                physics_loss = self.loss2_weight * self.loss2(self)
+            
+            loss = data_loss + physics_loss
             loss.backward()
             optimiser.step()
             losses.append(loss.item())
+
             if ep % int(self.epochs / 10) == 0:
-                print(f"Epoch {ep}/{self.epochs}, loss: {losses[-1]:.2f}")
+                print(f"Epoch {ep}/{self.epochs}, data loss: {data_loss:.2f}, physics loss: {physics_loss:.2f}")
         return losses
 
     def predict(self, X):
