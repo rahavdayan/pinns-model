@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import torch
 import numpy as np
 
@@ -41,4 +39,3 @@ def magnetic_field_deriv(x):
 
 def magnetization(x):
     return c*magnetic_field(x)
->>>>>>> Stashed changes
