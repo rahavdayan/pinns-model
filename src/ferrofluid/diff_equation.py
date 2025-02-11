@@ -26,7 +26,7 @@ T = 293  # Room temperature in Kelvin
 mu_0 = 4*np.pi*1e-7  # Vacuum permeability
 d = 76*1e-9  # diameter of magnetic nanoparticle (googled!)
 M_d = 4.46*1e5  # Magnetic moment of particle (this is an estimate, should be from paper)
-phi = 1/4   # volume fraction of magnetic nanoparticles
+phi = 1/4   # volume fraction of magnetic nanoparticles (25% mentioned somwhere in background paper)
 
 # Droplet parameters
 r = 0.002                           # Radius of droplet in [m]
@@ -36,8 +36,7 @@ V = (4/3)*np.pi*(r**3)              # Volume of droplet in [m^3]
 def langevin(x):
     """Langevin function L(x) = coth(x) - 1/x"""
     # Add small epsilon to prevent division by zero
-    # eps = 1e-30
-    eps = 0
+    eps = 1e-30
     x = x + eps
 
     return 1/torch.tanh(x) - 1/x
