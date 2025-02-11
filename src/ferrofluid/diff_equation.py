@@ -13,29 +13,31 @@ def grad(outputs, inputs):
         outputs, inputs, grad_outputs=torch.ones_like(outputs), create_graph=True
     )
 
-A = 10**13 * -2.586667896908887
-B = 10**13 * 0.252612231449641
-C = 10**13 * -0.009638840486198
-D = 10**13 * 0.000181276716002
-E = 10**13 * -0.000001724024410
-F = 10**13 * 0.000000007058447
+A = 1e13 * -2.586667896908887
+B = 1e13 * 0.252612231449641
+C = 1e13 * -0.009638840486198
+D = 1e13 * 0.000181276716002
+E = 1e13 * -0.000001724024410
+F = 1e13 * 0.000000007058447
 
 # Magnetic parameters
 k_B = 1.380649e-23  # Boltzmann constant
 T = 293  # Room temperature in Kelvin
 mu_0 = 4*np.pi*1e-7  # Vacuum permeability
-d = 76*10**-9  # Magnetic moment of particle (this is an estimate, should be from paper)
-M_d = 4.46*10**5  # Magnetic moment of particle (this is an estimate, should be from paper)
+d = 76*1e-9  # diameter of magnetic nanoparticle (googled!)
+M_d = 4.46*1e5  # Magnetic moment of particle (this is an estimate, should be from paper)
+phi = 1/4   # volume fraction of magnetic nanoparticles
 
 # Droplet parameters
-r = 0.001                           # Radius of droplet in [m]
+r = 0.002                           # Radius of droplet in [m]
 V = (4/3)*np.pi*(r**3)              # Volume of droplet in [m^3]
 
 
 def langevin(x):
     """Langevin function L(x) = coth(x) - 1/x"""
     # Add small epsilon to prevent division by zero
-    eps = 1e-10
+    # eps = 1e-30
+    eps = 0
     x = x + eps
 
     return 1/torch.tanh(x) - 1/x
@@ -45,7 +47,7 @@ def magnetization(x):
     H = magnetic_field(x)
     alpha = (mu_0 * M_d* d**3* np.pi/6 * H)/(k_B * T)
     alpha_tensor = torch.tensor(alpha)
-    return M_d* V * langevin(alpha_tensor)
+    return M_d* phi * langevin(alpha_tensor)
 
 def magnetic_field(x):
     """H(x) relationship using polynomial"""
