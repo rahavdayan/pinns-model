@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 # H(x) polynomial coefficients, x is measured in m and H in A/m
 A = (10**13) * -2.586667896908887
@@ -25,11 +24,11 @@ def grad(outputs, inputs):
     )
 
 def position_2mm_droplet():
-    return np.array([21.3874, 114.554, 371.812, 551.812, 791.812, 1190.91]), np.array([11.6842, 16.3119, 19.8543, 21.0027, 22.047, 23.2759]) / 1000
+    return torch.tensor([21.3874, 114.554, 371.812, 551.812, 791.812, 1190.91]), torch.tensor([11.6842, 16.3119, 19.8543, 21.0027, 22.047, 23.2759]) / 1000
     # list of time values in s, then position values in m (converted from mm to m)
 
 def position_3mm_droplet():
-    return np.array([31.9143, 164.784, 396.852, 636.852, 876.852, 1116.85]), np.array([14.9303, 19.8436, 22.3973, 23.8782, 25.0633, 26.1438]) / 1000
+    return torch.tensor([31.9143, 164.784, 396.852, 636.852, 876.852, 1116.85]), torch.tensor([14.9303, 19.8436, 22.3973, 23.8782, 25.0633, 26.1438]) / 1000
 
 def magnetic_field(x):
     return (A*(x**5) + B*(x**4) + C*(x**3) + D*(x**2) + E*x + F)

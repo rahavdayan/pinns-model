@@ -52,14 +52,16 @@ class Net(nn.Module):
         return out
 
     def fit(self, X, y):
-        min_X, max_X = np.min(X), np.max(X)
-        min_y, max_y = np.min(y), np.max(y)
+        # min_X, max_X = np.min(X), np.max(X)
+        # min_y, max_y = np.min(y), np.max(y)
 
-        normalized_X = (X - min_X) / (max_X - min_X)
-        normalized_Y = (y - min_y) / (max_y - min_y)
+        # normalized_X = (X - min_X) / (max_X - min_X)
+        # normalized_Y = (y - min_y) / (max_y - min_y)
 
-        normalized_Xt = np_to_th(normalized_X)
-        normalized_yt = np_to_th(normalized_Y)
+        # normalized_Xt = np_to_th(normalized_X)
+        # normalized_yt = np_to_th(normalized_Y)
+        a = X.is_cuda
+        b = y.is_cuda
 
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
@@ -67,8 +69,8 @@ class Net(nn.Module):
 
         for ep in range(self.epochs):
             optimiser.zero_grad()
-            outputs = self.forward(normalized_Xt)
-            data_loss = self.loss(normalized_yt, outputs)
+            outputs = self.forward(X)
+            data_loss = self.loss(y, outputs)
 
             if self.loss2:
                 physics_loss = self.loss2_weight * self.loss2(self)
@@ -79,7 +81,7 @@ class Net(nn.Module):
             losses.append(loss.item())
 
             if ep % int(self.epochs / 10) == 0:
-                print(f"Epoch {ep}/{self.epochs}, data loss: {data_loss:.2f}, physics loss: {physics_loss:.2f}")
+                print(f"Epoch {ep}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
         return losses
 
     def predict(self, X):
