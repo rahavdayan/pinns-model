@@ -22,6 +22,7 @@ class Net(nn.Module):
         loss=nn.MSELoss(),
         lr=1e-3,
         loss2=None,
+        loss1_weight=0.1,
         loss2_weight=0.1,
     ) -> None:
         super().__init__()
@@ -30,6 +31,7 @@ class Net(nn.Module):
         self.loss = loss
         self.loss2 = loss2
         self.loss2_weight = loss2_weight
+        self.loss1_weight = loss1_weight
         self.lr = lr
         self.n_units = n_units
 
@@ -52,30 +54,23 @@ class Net(nn.Module):
         return out
 
     def fit(self, X, y):
-        # min_X, max_X = np.min(X), np.max(X)
-        # min_y, max_y = np.min(y), np.max(y)
-
-        # normalized_X = (X - min_X) / (max_X - min_X)
-        # normalized_Y = (y - min_y) / (max_y - min_y)
-
-        # normalized_Xt = np_to_th(normalized_X)
-        # normalized_yt = np_to_th(normalized_Y)
-        a = X.is_cuda
-        b = y.is_cuda
-
+        Xt = np_to_th(X)
+        yt = np_to_th(y)
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
         losses = []
 
         for ep in range(self.epochs):
             optimiser.zero_grad()
-            outputs = self.forward(X)
-            data_loss = self.loss(y, outputs)
+            outputs = self.forward(Xt)
+            data_loss = self.loss1_weight * self.loss(yt, outputs)
 
             if self.loss2:
                 physics_loss = self.loss2_weight * self.loss2(self)
+                loss = data_loss + physics_loss
+            else:
+                loss = data_loss
             
-            loss = data_loss + physics_loss
             loss.backward()
             optimiser.step()
             losses.append(loss.item())
