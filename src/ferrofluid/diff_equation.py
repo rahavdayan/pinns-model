@@ -5,12 +5,12 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # H(x) polynomial coefficients, x is measured in m and H in A/m
 a_i = [
-    (10**13) * -2.586667896908887,
-    (10**13) * 0.252612231449641,
-    (10**13) * -0.009638840486198,
-    (10**13) * 0.000181276716002,
-    (10**13) * -0.000001724024410,
-    (10**13) * 0.000000007058447
+    (10**13) * -2.586667896908887, # [A/m^6]
+    (10**13) * 0.252612231449641,  # [A/m^5]
+    (10**13) * -0.009638840486198, # [A/m^4]
+    (10**13) * 0.000181276716002,  # [A/m^3]
+    (10**13) * -0.000001724024410, # [A/m^2]
+    (10**13) * 0.000000007058447   # [A/m]
 ]
 n = len(a_i)                        # Number of data points
 
@@ -51,13 +51,13 @@ def position_3mm_droplet():
 
 def H(x):
     sum = 0
-    for i in range(0, n):
+    for i in range(n-1, -1, -1):
         sum += a_i[i]*(x ** i)
     return sum
 
 def dH_dx(x):
     sum = 0
-    for i in range(1, n):
+    for i in range(n-1, 0, -1):
         sum += i*a_i[i]*(x ** (i-1))
     return sum
 
