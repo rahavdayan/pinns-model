@@ -29,7 +29,7 @@ M_d = 4.46*1e5  # Magnetic moment of particle (this is an estimate, should be fr
 phi = 1/4   # volume fraction of magnetic nanoparticles (25% mentioned somwhere in background paper)
 
 # Droplet parameters
-r = 0.002                           # Radius of droplet in [m]
+r = 0.001                           # Radius of droplet in [m]
 V = (4/3)*np.pi*(r**3)              # Volume of droplet in [m^3]
 
 
@@ -46,13 +46,13 @@ def magnetization(x):
     H = magnetic_field(x)
     alpha = (mu_0 * M_d* d**3* np.pi/6 * H)/(k_B * T)
     alpha_tensor = torch.tensor(alpha)
-    return M_d* phi * langevin(alpha_tensor)
+    return M_d * phi * langevin(alpha_tensor)
 
-def magnetic_field(x):
+def magnetic_field_deriv(x):
     """H(x) relationship using polynomial"""
     return 5*A*(x**4) + 4*B*(x**3) + 3*C*(x**2) + 2*D*x + E
 
-def magnetic_field_deriv(x):
+def magnetic_field(x):
     """dH/dx is polynomial"""
     return A*(x**5) + B*(x**4) + C*(x**3) + D*(x**2) + E*x + F
 
