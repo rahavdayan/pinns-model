@@ -15,7 +15,7 @@ a_i = [
 n = len(a_i)                        # Number of data points
 
 # Different variables for problem
-r = 0.003                           # Radius of droplet in [m]
+r = 0.002                           # Radius of droplet in [m]
 V = (4/3)*np.pi*(r**3)              # Volume of droplet in [m^3]
 mu_0 = 1.256637*(10**-6)            # Permeability of free space [m*kg/(s*A)]
 eta = 50                            # Viscosity in [Pa*s]
@@ -70,5 +70,14 @@ def physics_loss(model: torch.nn.Module):
     xs = model(ts)
     dx = grad(xs, ts)[0]
     pde = dx_dt_nondim(ts, xs) - dx
+    
+    return torch.mean(pde**2)
+
+def physics_loss_dimensional(model: torch.nn.Module):
+    ts = torch.linspace(0, 1200, steps=1200,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    xs = model(ts)
+    dx = grad(xs, ts)[0]
+    xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(xs)
+    pde = (V*mu_0*phi*M_d*dH_dx(xs)*(1/torch.tanh(xi) - 1/xi))/(6*r*np.pi*eta) - dx
     
     return torch.mean(pde**2)
