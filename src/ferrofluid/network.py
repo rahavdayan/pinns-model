@@ -24,6 +24,7 @@ class Net(nn.Module):
         loss2=None,
         loss1_weight=0.1,
         loss2_weight=0.1,
+        droplet_size_idx=0
     ) -> None:
         super().__init__()
 
@@ -34,6 +35,7 @@ class Net(nn.Module):
         self.loss1_weight = loss1_weight
         self.lr = lr
         self.n_units = n_units
+        self.droplet_size_idx = droplet_size_idx
 
         self.layers = nn.Sequential(
             nn.Linear(input_dim, self.n_units),
@@ -75,8 +77,8 @@ class Net(nn.Module):
             optimiser.step()
             losses.append(loss.item())
 
-            if ep % int(self.epochs / 10) == 0:
-                print(f"Epoch {ep}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
+            if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
+                print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
         return losses
 
     def predict(self, X):
