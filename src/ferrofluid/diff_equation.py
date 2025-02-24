@@ -1,8 +1,36 @@
 import torch
 import numpy as np
 import pandas as pd
+import csv
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# use the magnetic field data to create an exponential fit
+def exponential_fit():
+    # Load the CSV data
+    with open('./droplet_data/magnetic_field_data.csv', 'r') as f:
+        reader = csv.reader(f)
+        data = np.array(list(reader), dtype=float)
+    
+    # Extract x and y values
+    x_target, y_target = data[:, 0], data[:, 1]
+
+    # Log-transform y values (base 20)
+    log_y_target = np.log(y_target)
+
+    # Construct the linear system Ax = b
+    A = np.vstack([x_target, np.ones(len(x_target))]).T
+    m, c = np.linalg.lstsq(A, log_y_target, rcond=None)[0]
+
+    # Define the exponential fit function
+    def f(x):
+        return np.e ** (c + m * x)
+    
+    # Define its derivative
+    def f_deriv(x):
+        return m*np.e ** (c + m * x)
+    
+    return f, f_deriv
 
 # H(x) polynomial coefficients, x is measured in m and H in A/m
 a_i = [
@@ -26,6 +54,7 @@ d = 76*1e-9                                                     # mean diameter 
 k_B = 1.3806452*(10**-23)                                       # Boltzmann constant [m^2*Kg*s^-2*K^-1]
 T = 293                                                         # Absolute temperature [K]
 phi = 1/4                                                       # volume fraction of magnetic nanoparticles (25%, mentioned somwhere in background paper)
+exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
 
 def grad(outputs, inputs):
     """Computes the partial derivative of 
@@ -72,24 +101,36 @@ def M(x):
 
 # Magnetic field
 def H(x):
-    sum = 0
-    for i in range(n-1, -1, -1):
-        sum += a_i[i]*(x ** i)
-    return sum
+    out = torch.zeros_like(x).to(DEVICE)
+    for idx, ele in enumerate(x):
+        if ele < 20:
+            sum = 0
+            for i in range(n-1, -1, -1):
+                sum += a_i[i] * (ele ** i)
+            out[idx] = sum
+        else:
+            out[idx] = exp(ele)
+    return out
 
 # Magnetic field derivative
 def dH_dx(x):
-    sum = 0
-    for i in range(n-1, 0, -1):
-        sum += i*a_i[i]*(x ** (i-1))
-    return sum
+    out = torch.zeros_like(x).to(DEVICE)
+    for idx, ele in enumerate(x):
+        if ele < 20:
+            sum = 0
+            for i in range(n - 1, 0, -1):
+                sum += i * a_i[i] * (ele ** (i - 1))
+            out[idx] = sum
+        else:
+            out[idx] = exp_deriv(ele)
+    return out
 
 # nondimensional version of dx/dt (dx*/dt* instead of dx/dt)
 def dx_dt_nondim(t_star, x_star, droplet_size_idx):
     return (V[droplet_size_idx]*M(x_0*x_star)*mu_0*dH_dx(x_0*x_star)*torch.exp(t_star)) / (6*np.pi*r[droplet_size_idx]*eta*x_0)
 
 def physics_loss_nondim(model: torch.nn.Module):
-    ts = torch.linspace(np.log(0), np.log(600), steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    ts = torch.linspace(np.log(1e-50), np.log(600), steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
     xs = model(ts)
     dx = grad(xs, ts)[0]
     pde = dx_dt_nondim(ts, xs, model.droplet_size_idx) - dx
