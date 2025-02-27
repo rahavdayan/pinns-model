@@ -102,27 +102,37 @@ def M(x):
 # Magnetic field
 def H(x):
     out = torch.zeros_like(x).to(DEVICE)
-    for idx, ele in enumerate(x):
-        if ele < 20:
-            sum = 0
-            for i in range(n-1, -1, -1):
-                sum += a_i[i] * (ele ** i)
-            out[idx] = sum
-        else:
-            out[idx] = exp(ele)
+    
+    # Mask for elements where ele < 20
+    mask_poly = x < 20
+    mask_exp = ~mask_poly
+    
+    # Polynomial part for elements < 20
+    if mask_poly.any():
+        out[mask_poly] = torch.sum(a_i * (x[mask_poly].unsqueeze(-1) ** torch.arange(n-1, -1, -1, device=DEVICE)), dim=-1)
+    
+    # Exponential part for elements >= 20
+    if mask_exp.any():
+        out[mask_exp] = torch.exp(x[mask_exp])
+    
     return out
 
 # Magnetic field derivative
 def dH_dx(x):
     out = torch.zeros_like(x).to(DEVICE)
-    for idx, ele in enumerate(x):
-        if ele < 20:
-            sum = 0
-            for i in range(n - 1, 0, -1):
-                sum += i * a_i[i] * (ele ** (i - 1))
-            out[idx] = sum
-        else:
-            out[idx] = exp_deriv(ele)
+    
+    # Mask for elements where ele < 20
+    mask_poly = x < 20
+    mask_exp = ~mask_poly
+    
+    # Polynomial derivative part for elements < 20
+    if mask_poly.any():
+        out[mask_poly] = torch.sum(torch.arange(n - 1, 0, -1, device=DEVICE) * a_i[1:n] * (x[mask_poly].unsqueeze(-1) ** torch.arange(n - 2, -1, -1, device=DEVICE)), dim=-1)
+    
+    # Exponential derivative part for elements >= 20
+    if mask_exp.any():
+        out[mask_exp] = torch.exp(x[mask_exp])
+    
     return out
 
 # nondimensional version of dx/dt (dx*/dt* instead of dx/dt)
