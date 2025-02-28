@@ -15,7 +15,7 @@ def exponential_fit():
     # Extract x and y values
     x_target, y_target = data[:, 0], data[:, 1]
 
-    # Log-transform y values (base 20)
+    # Log-transform y values
     log_y_target = np.log(y_target)
 
     # Construct the linear system Ax = b
@@ -31,13 +31,6 @@ def exponential_fit():
         return c*m*np.e ** (m * x)
     
     return f, f_deriv
-
-# # come up with a domain surrounding the nondimensionalized training data points
-# def get_domain_nondim(droplet_size_idx):
-#     min_value = nondim_data[droplet_size_idx]["TIME"].min()
-#     max_value = nondim_data[droplet_size_idx]["TIME"].max()
-#     # this extends the domain by 20% the original interval to the right
-#     return min_value, max_value + (max_value - min_value)*0.2
 
 # come up with a domain surrounding the dimensionalized training data points
 def get_domain_dim(droplet_size_idx):
@@ -61,7 +54,6 @@ def grab_training_data():
     # get training data csvs
     droplet_files_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
     dim_data = [None] * len(droplet_files_names)
-    nondim_data = [None] * len(droplet_files_names)
     
     # store csv for each size droplet into an array, one for dimensionalized data and one for nondimensionalized
     for i in range (0, len(droplet_files_names)):
@@ -72,13 +64,8 @@ def grab_training_data():
         
         # exclude first row because of issues with (0, 0)
         dim_data[i] = dim_data[i].loc[1:]
-
-        # perform nondimensionalization on nondimensionalized copy
-        nondim_data[i] = dim_data[i].copy()
-        nondim_data[i]['TIME'] = np.log(nondim_data[i]['TIME'])
-        nondim_data[i]['DISTANCE'] = nondim_data[i]['DISTANCE'] / x_0
     
-    return dim_data, nondim_data
+    return dim_data
 
 # H(x) polynomial coefficients from highest deg to lowest, x is measured in m and H in A/m
 a_i = [
@@ -97,13 +84,12 @@ V = (4/3)*torch.pi*(r**3).to(DEVICE)                            # List of volume
 mu_0 = 1.256637*(10**-6)                                        # Permeability of free space [m*kg/(s*A)]
 eta = 50                                                        # Viscosity in [Pa*s]
 M_d = 4.46*1e5                                                  # Domain magnetization of the particles [A/m]
-x_0 = 1000                                                      # x scaling factor [m]
 d = 76*1e-9                                                     # mean diameter of nanoparticles [m]
 k_B = 1.3806452*(10**-23)                                       # Boltzmann constant [m^2*Kg*s^-2*K^-1]
 T = 293                                                         # Absolute temperature [K]
 phi = 1/4                                                       # volume fraction of magnetic nanoparticles (25%, mentioned somwhere in background paper)
 exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
-dim_data, nondim_data = grab_training_data()
+dim_data = grab_training_data()
 x_c = 0.02                                                      # Cutoff value for piecewise H(x) and dH_dx(x) in default units, mm
 
 # Langevin function
@@ -165,21 +151,9 @@ def dH_dx(x, x_c):
     
     return out
 
-# # nondimensional differential equation dx/dt, used for nondimensional physics loss
-# def dx_dt_nondim(t, x, x_c, droplet_size_idx):
-#     return dx_dt_dim(t, x, x_0*x_c, droplet_size_idx) * (t / x_0)
-
 # dimensional differential equation dx/dt, used in dimensional physics loss
 def dx_dt_dim(t, x, x_c, droplet_size_idx):
     return (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
-
-# def physics_loss_nondim(model: torch.nn.Module):
-#     ts_min, ts_max = get_domain_nondim(model.droplet_size_idx)
-#     ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
-#     xs = model(ts)
-#     dx = grad(xs, ts)[0]
-#     pde = dx_dt_nondim(ts, xs, x_c, model.droplet_size_idx) - dx
-#     return torch.mean(pde**2)
 
 def physics_loss_dim(model: torch.nn.Module):
     ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
