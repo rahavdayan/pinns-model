@@ -24,37 +24,27 @@ def exponential_fit():
 
     # Define the exponential fit function
     def f(x):
-        return np.e ** (c + m * x)
+        return c*np.e ** (m * x)
     
     # Define its derivative
     def f_deriv(x):
-        return m*np.e ** (c + m * x)
+        return c*m*np.e ** (m * x)
     
     return f, f_deriv
 
-# H(x) polynomial coefficients, x is measured in m and H in A/m
-a_i = [
-    (10**13) * -2.586667896908887,
-    (10**13) * 0.252612231449641,
-    (10**13) * -0.009638840486198,
-    (10**13) * 0.000181276716002,
-    (10**13) * -0.000001724024410,
-    (10**13) * 0.000000007058447
-]
+# # come up with a domain surrounding the nondimensionalized training data points
+# def get_domain_nondim(droplet_size_idx):
+#     min_value = nondim_data[droplet_size_idx]["TIME"].min()
+#     max_value = nondim_data[droplet_size_idx]["TIME"].max()
+#     # this extends the domain by 20% the original interval to the right
+#     return min_value, max_value + (max_value - min_value)*0.2
 
-# Different variables for problem
-n = len(a_i)                                                    # Number of data points
-r = torch.tensor([0.0005, 0.001, 0.0015, 0.002]).to(DEVICE)     # List of radii of droplet sizes in [m]
-V = (4/3)*torch.pi*(r**3).to(DEVICE)                            # List of volumes of droplet sizes in [m^3]
-mu_0 = 1.256637*(10**-6)                                        # Permeability of free space [m*kg/(s*A)]
-eta = 50                                                        # Viscosity in [Pa*s]
-M_d = 4.46*1e5                                                  # Domain magnetization of the particles [A/m]
-x_0 = 1000                                                      # x scaling factor [m]
-d = 76*1e-9                                                     # mean diameter of nanoparticles [m]
-k_B = 1.3806452*(10**-23)                                       # Boltzmann constant [m^2*Kg*s^-2*K^-1]
-T = 293                                                         # Absolute temperature [K]
-phi = 1/4                                                       # volume fraction of magnetic nanoparticles (25%, mentioned somwhere in background paper)
-exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
+# come up with a domain surrounding the dimensionalized training data points
+def get_domain_dim(droplet_size_idx):
+    min_value = dim_data[droplet_size_idx]["TIME"].min()
+    max_value = dim_data[droplet_size_idx]["TIME"].max()
+    # this extends the domain by 20% the original interval to the right
+    return min_value, max_value + (max_value - min_value)*0.2
 
 def grad(outputs, inputs):
     """Computes the partial derivative of 
@@ -90,21 +80,47 @@ def grab_training_data():
     
     return dim_data, nondim_data
 
+# H(x) polynomial coefficients from highest deg to lowest, x is measured in m and H in A/m
+a_i = [
+    (10**13) * -2.586667896908887,
+    (10**13) * 0.252612231449641,
+    (10**13) * -0.009638840486198,
+    (10**13) * 0.000181276716002,
+    (10**13) * -0.000001724024410,
+    (10**13) * 0.000000007058447
+]
+
+# Different variables for problem
+n = len(a_i)                                                    # Number of data points
+r = torch.tensor([0.0005, 0.001, 0.0015, 0.002]).to(DEVICE)     # List of radii of droplet sizes in [m]
+V = (4/3)*torch.pi*(r**3).to(DEVICE)                            # List of volumes of droplet sizes in [m^3]
+mu_0 = 1.256637*(10**-6)                                        # Permeability of free space [m*kg/(s*A)]
+eta = 50                                                        # Viscosity in [Pa*s]
+M_d = 4.46*1e5                                                  # Domain magnetization of the particles [A/m]
+x_0 = 1000                                                      # x scaling factor [m]
+d = 76*1e-9                                                     # mean diameter of nanoparticles [m]
+k_B = 1.3806452*(10**-23)                                       # Boltzmann constant [m^2*Kg*s^-2*K^-1]
+T = 293                                                         # Absolute temperature [K]
+phi = 1/4                                                       # volume fraction of magnetic nanoparticles (25%, mentioned somwhere in background paper)
+exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
+dim_data, nondim_data = grab_training_data()
+x_c = 0.02                                                      # Cutoff value for piecewise H(x) and dH_dx(x) in default units, mm
+
 # Langevin function
 def L(xi):
     return 1/torch.tanh(xi) - 1/xi
 
 # Magnetization
-def M(x):
-    xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x)
+def M(x, x_c):
+    xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     return phi*M_d*L(xi)
 
 # Magnetic field
-def H(x):
+def H(x, x_c):
     out = torch.zeros_like(x).to(DEVICE)
     
     # Mask for elements where x < 20
-    mask_poly = x < 20
+    mask_poly = x < x_c
     mask_exp = ~mask_poly
     
     # Convert a_i list to a tensor
@@ -119,21 +135,21 @@ def H(x):
     
     # Exponential part for elements >= 20
     if mask_exp.any():
-        out[mask_exp] = torch.exp(x[mask_exp])
+        out[mask_exp] = exp(x[mask_exp])
     
     return out
 
 # Magnetic field derivative
-def dH_dx(x):
+def dH_dx(x, x_c):
     out = torch.zeros_like(x).to(DEVICE)
     
     # Mask for elements where x < 20
-    mask_poly = x < 20
+    mask_poly = x < x_c
     mask_exp = ~mask_poly
     
     # Convert a_i list to a tensor
-    a_i_tensor = torch.tensor(a_i[1:], dtype=torch.float32, device=DEVICE).repeat(len(out), 1)
-    # Convert range from n to 1 to a tensor
+    a_i_tensor = torch.tensor(a_i[:-1], dtype=torch.float32, device=DEVICE).repeat(len(out), 1)
+    # Convert range from n-1 to 1 to a tensor
     i_tensor = torch.arange(n-1, 0, -1, device=DEVICE, dtype=torch.float32).repeat(len(out), 1)
 
     # Polynomial derivative part for elements < 20
@@ -145,25 +161,30 @@ def dH_dx(x):
     
     # Exponential derivative part for elements >= 20
     if mask_exp.any():
-        out[mask_exp] = torch.exp(x[mask_exp])
+        out[mask_exp] = exp_deriv(x[mask_exp])
     
     return out
 
-# nondimensional version of dx/dt (dx*/dt* instead of dx/dt)
-def dx_dt_nondim(t_star, x_star, droplet_size_idx):
-    return (V[droplet_size_idx]*M(x_0*x_star)*mu_0*dH_dx(x_0*x_star)*torch.exp(t_star)) / (6*np.pi*r[droplet_size_idx]*eta*x_0)
+# # nondimensional differential equation dx/dt, used for nondimensional physics loss
+# def dx_dt_nondim(t, x, x_c, droplet_size_idx):
+#     return dx_dt_dim(t, x, x_0*x_c, droplet_size_idx) * (t / x_0)
 
-def physics_loss_nondim(model: torch.nn.Module):
-    ts = torch.linspace(np.log(1e-50), np.log(600), steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
+# dimensional differential equation dx/dt, used in dimensional physics loss
+def dx_dt_dim(t, x, x_c, droplet_size_idx):
+    return (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
+
+# def physics_loss_nondim(model: torch.nn.Module):
+#     ts_min, ts_max = get_domain_nondim(model.droplet_size_idx)
+#     ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
+#     xs = model(ts)
+#     dx = grad(xs, ts)[0]
+#     pde = dx_dt_nondim(ts, xs, x_c, model.droplet_size_idx) - dx
+#     return torch.mean(pde**2)
+
+def physics_loss_dim(model: torch.nn.Module):
+    ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
+    ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
     xs = model(ts)
     dx = grad(xs, ts)[0]
-    pde = dx_dt_nondim(ts, xs, model.droplet_size_idx) - dx
-    return torch.mean(pde**2)
-
-def physics_loss_dimensional(model: torch.nn.Module):
-    ts = torch.linspace(0, 600, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
-    xs = model(ts)
-    dx = grad(xs, ts)[0]
-    xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(xs)
-    pde = (V*mu_0*phi*M_d*dH_dx(xs)*(1/torch.tanh(xi) - 1/xi))/(6*r*np.pi*eta) - dx
+    pde = dx_dt_dim(ts, xs, x_c, model.droplet_size_idx) - dx
     return torch.mean(pde**2)
