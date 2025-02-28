@@ -103,13 +103,19 @@ def M(x):
 def H(x):
     out = torch.zeros_like(x).to(DEVICE)
     
-    # Mask for elements where ele < 20
+    # Mask for elements where x < 20
     mask_poly = x < 20
     mask_exp = ~mask_poly
     
+    # Convert a_i list to a tensor
+    a_i_tensor = torch.tensor(a_i, dtype=torch.float32, device=DEVICE).repeat(len(out), 1)
+
     # Polynomial part for elements < 20
     if mask_poly.any():
-        out[mask_poly] = torch.sum(a_i * (x[mask_poly].unsqueeze(-1) ** torch.arange(n-1, -1, -1, device=DEVICE)), dim=-1)
+        # does tensor multipication
+        mult_tensor = a_i_tensor[mask_poly.view(-1)] * (x[mask_poly].unsqueeze(-1) ** torch.arange(n-1, -1, -1, device=DEVICE, dtype=torch.float32))
+        # Perform element-wise multiplication with a_i (broadcasted) and sum along the rows
+        out[mask_poly] = torch.sum(mult_tensor, dim=1)
     
     # Exponential part for elements >= 20
     if mask_exp.any():
@@ -121,13 +127,21 @@ def H(x):
 def dH_dx(x):
     out = torch.zeros_like(x).to(DEVICE)
     
-    # Mask for elements where ele < 20
+    # Mask for elements where x < 20
     mask_poly = x < 20
     mask_exp = ~mask_poly
     
+    # Convert a_i list to a tensor
+    a_i_tensor = torch.tensor(a_i[1:], dtype=torch.float32, device=DEVICE).repeat(len(out), 1)
+    # Convert range from n to 1 to a tensor
+    i_tensor = torch.arange(n-1, 0, -1, device=DEVICE, dtype=torch.float32).repeat(len(out), 1)
+
     # Polynomial derivative part for elements < 20
     if mask_poly.any():
-        out[mask_poly] = torch.sum(torch.arange(n - 1, 0, -1, device=DEVICE) * a_i[1:n] * (x[mask_poly].unsqueeze(-1) ** torch.arange(n - 2, -1, -1, device=DEVICE)), dim=-1)
+        # does tensor multipication
+        mult_tensor = i_tensor[mask_poly.view(-1)] * a_i_tensor[mask_poly.view(-1)] * (x[mask_poly].unsqueeze(-1) ** torch.arange(n-2, -1, -1, device=DEVICE, dtype=torch.float32))
+        # Perform element-wise multiplication with a_i (broadcasted) and sum along the rows
+        out[mask_poly] = torch.sum(mult_tensor, dim=1)
     
     # Exponential derivative part for elements >= 20
     if mask_exp.any():
