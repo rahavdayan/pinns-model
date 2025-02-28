@@ -24,11 +24,11 @@ def exponential_fit():
 
     # Define the exponential fit function
     def f(x):
-        return c*np.e ** (m * x)
+        return np.e ** (c + m * x)
     
     # Define its derivative
     def f_deriv(x):
-        return c*m*np.e ** (m * x)
+        return m*np.e ** (c + m * x)
     
     return f, f_deriv
 
@@ -153,7 +153,7 @@ def dH_dx(x, x_c):
 
 # dimensional differential equation dx/dt, used in dimensional physics loss
 def dx_dt_dim(t, x, x_c, droplet_size_idx):
-    return (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
+    return -(V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
 
 def physics_loss_dim(model: torch.nn.Module):
     ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
