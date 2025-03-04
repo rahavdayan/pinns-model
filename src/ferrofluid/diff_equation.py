@@ -80,6 +80,13 @@ def grab_training_data():
     
     return dim_data, nondim_data
 
+def grab_e_data():
+    dim_data = [None]
+    nondim_data = [None]
+    dim_data[0] = pd.read_csv('./droplet_data/droplet_e_noise.csv')
+
+    return dim_data, dim_data
+
 # H(x) polynomial coefficients from highest deg to lowest, x is measured in m and H in A/m
 a_i = [
     (10**13) * -2.586667896908887,
@@ -103,7 +110,8 @@ k_B = 1.3806452*(10**-23)                                       # Boltzmann cons
 T = 293                                                         # Absolute temperature [K]
 phi = 1/4                                                       # volume fraction of magnetic nanoparticles (25%, mentioned somwhere in background paper)
 exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
-dim_data, nondim_data = grab_training_data()
+#dim_data, nondim_data = grab_training_data()
+dim_data, nondim_data = grab_e_data()
 x_c = 0.02                                                      # Cutoff value for piecewise H(x) and dH_dx(x) in default units, mm
 
 # Langevin function
@@ -187,4 +195,12 @@ def physics_loss_dim(model: torch.nn.Module):
     xs = model(ts)
     dx = grad(xs, ts)[0]
     pde = dx_dt_dim(ts, xs, x_c, model.droplet_size_idx) - dx
+    return torch.mean(pde**2)
+
+def physics_loss_e(model: torch.nn.Module):
+    ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
+    ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    xs = model(ts)
+    dx = grad(xs, ts)[0]
+    pde = -xs - dx # dx/dt = -x
     return torch.mean(pde**2)
