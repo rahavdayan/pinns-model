@@ -98,6 +98,11 @@ def L(xi):
 
 # Magnetization
 def M(x, x_c):
+    return 70000 * H(x, x_c)
+    # xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
+    # return phi*M_d*L(xi)
+
+def M_Langevin(x, x_c):
     xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     return phi*M_d*L(xi)
 
@@ -153,12 +158,12 @@ def dH_dx(x, x_c):
 
 # dimensional differential equation dx/dt, used in dimensional physics loss
 def dx_dt_dim(t, x, x_c, droplet_size_idx):
-    return -(V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
+    return  (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
 
 def physics_loss_dim(model: torch.nn.Module):
     ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
     ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
     xs = model(ts)
     dx = grad(xs, ts)[0]
-    pde = dx_dt_dim(ts, xs, x_c, model.droplet_size_idx) - dx
+    pde = 1/dx_dt_dim(ts, xs, x_c, model.droplet_size_idx) - dx
     return torch.mean(pde**2)
