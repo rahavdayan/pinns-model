@@ -1,8 +1,8 @@
-# hello
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as thdat
+import numpy as np
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -22,7 +22,9 @@ class Net(nn.Module):
         loss=nn.MSELoss(),
         lr=1e-3,
         loss2=None,
+        loss1_weight=0.1,
         loss2_weight=0.1,
+        droplet_size_idx=0
     ) -> None:
         super().__init__()
 
@@ -30,8 +32,10 @@ class Net(nn.Module):
         self.loss = loss
         self.loss2 = loss2
         self.loss2_weight = loss2_weight
+        self.loss1_weight = loss1_weight
         self.lr = lr
         self.n_units = n_units
+        self.droplet_size_idx = droplet_size_idx
 
         self.layers = nn.Sequential(
             nn.Linear(input_dim, self.n_units),
@@ -54,21 +58,27 @@ class Net(nn.Module):
     def fit(self, X, y):
         Xt = np_to_th(X)
         yt = np_to_th(y)
-
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
         losses = []
+
         for ep in range(self.epochs):
             optimiser.zero_grad()
             outputs = self.forward(Xt)
-            loss = self.loss(yt, outputs)
+            data_loss = self.loss1_weight * self.loss(yt, outputs)
+
             if self.loss2:
-                loss += self.loss2_weight + self.loss2_weight * self.loss2(self)
+                physics_loss = self.loss2_weight * self.loss2(self)
+                loss = data_loss + physics_loss
+            else:
+                loss = data_loss
+            
             loss.backward()
             optimiser.step()
             losses.append(loss.item())
-            if ep % int(self.epochs / 10) == 0:
-                print(f"Epoch {ep}/{self.epochs}, loss: {losses[-1]:.2f}")
+
+            # if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
+            print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
         return losses
 
     def predict(self, X):
