@@ -34,8 +34,8 @@ def exponential_fit():
 
 # come up with a domain surrounding the dimensionalized training data points
 def get_domain_dim(droplet_size_idx):
-    min_value = dim_data[droplet_size_idx]["TIME"].min()
-    max_value = dim_data[droplet_size_idx]["TIME"].max()
+    min_value = dim_data[droplet_size_idx]["DISTANCE"].min()
+    max_value = dim_data[droplet_size_idx]["DISTANCE"].max()
     # this extends the domain by 20% the original interval to the right
     return min_value, max_value + (max_value - min_value)*0.2
 
@@ -98,7 +98,7 @@ def L(xi):
 
 # Magnetization
 def M(x, x_c):
-    return 70000 * H(x, x_c)
+    return 0.003 * H(x, x_c)
     # xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     # return phi*M_d*L(xi)
 
@@ -157,13 +157,13 @@ def dH_dx(x, x_c):
     return out
 
 # dimensional differential equation dx/dt, used in dimensional physics loss
-def dx_dt_dim(t, x, x_c, droplet_size_idx):
-    return  (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c)) / (6*np.pi*r[droplet_size_idx]*eta)
+def dt_dx_dim(x, x_c, droplet_size_idx):
+    return  -(6*np.pi*r[droplet_size_idx]*eta) / (V[droplet_size_idx]*M(x, x_c)*mu_0*dH_dx(x, x_c))
 
 def physics_loss_dim(model: torch.nn.Module):
-    ts_min, ts_max = get_domain_dim(model.droplet_size_idx)
-    ts = torch.linspace(ts_min, ts_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
-    xs = model(ts)
-    dx = grad(xs, ts)[0]
-    pde = 1/dx_dt_dim(ts, xs, x_c, model.droplet_size_idx) - dx
+    xs_min, xs_max = get_domain_dim(model.droplet_size_idx)
+    xs = torch.linspace(xs_min, xs_max, steps=600,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    ts = model(xs)
+    dt = grad(ts, xs)[0]
+    pde = dt_dx_dim(xs, x_c, model.droplet_size_idx) - dt
     return torch.mean(pde**2)
