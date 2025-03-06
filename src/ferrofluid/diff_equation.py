@@ -61,7 +61,7 @@ def grab_training_data():
         
         # Grab every tenth row
         dim_data[i] = dim_data[i][dim_data[i]['DISTANCE'] < 0.010]
-        dim_data[i] = dim_data[i][dim_data[i].index % 3 == 0]
+        dim_data[i] = dim_data[i][dim_data[i].index % 10 == 0]
         
         # exclude first row because of issues with (0, 0)
         dim_data[i] = dim_data[i].loc[1:]
