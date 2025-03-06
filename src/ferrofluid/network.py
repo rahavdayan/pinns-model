@@ -77,8 +77,8 @@ class Net(nn.Module):
             optimiser.step()
             losses.append(loss.item())
 
-            # if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
-            print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
+            if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
+                print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
         return losses
 
     def predict(self, X):
