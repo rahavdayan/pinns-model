@@ -37,7 +37,7 @@ def get_domain_dim(droplet_size_idx):
     min_value = dim_data[droplet_size_idx]["DISTANCE"].min()
     max_value = dim_data[droplet_size_idx]["DISTANCE"].max()
     # this extends the domain by 20% the original interval to the right
-    return min_value, max_value + (max_value - min_value)*0.2
+    return min_value, max_value + (max_value - min_value)*(dom_ext / 100)
 
 def grad(outputs, inputs):
     """Computes the partial derivative of 
@@ -84,6 +84,7 @@ exp, exp_deriv = exponential_fit()                              # Exponential fi
 dim_data = grab_training_data()
 x_c = 0.02                                                      # Cutoff value for piecewise H(x) and dH_dx(x) in default units, mm
 k = 0.003                                                       # Value of k for M(x) = k*H(x)
+dom_ext = 40                                                    # Percentage in which domain of evaluation of physics loss is extended from the domain of the training data
 
 # Magnetization
 def M(x, x_c):
