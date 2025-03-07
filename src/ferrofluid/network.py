@@ -78,7 +78,7 @@ class Net(nn.Module):
             losses.append(loss.item())
 
             # if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
-            print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
+            print(f"Epoch {ep+1}/{self.epochs}\tdata loss:\t{round(data_loss.item(), 4)}\tphysics loss:\t{round(physics_loss.item(), 4)}")
         return losses
 
     def predict(self, X):
