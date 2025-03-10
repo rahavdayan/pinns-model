@@ -15,7 +15,7 @@ def exponential_fit():
     # Extract x and y values
     x_target, y_target = data[:, 0], data[:, 1]
 
-    # Log-transform y values (base 20)
+    # Log-transform y values
     log_y_target = np.log(y_target)
 
     # Construct the linear system Ax = b
@@ -24,11 +24,11 @@ def exponential_fit():
 
     # Define the exponential fit function
     def f(x):
-        return c*np.e ** (m * x)
+        return np.e ** (c + m*x)
     
     # Define its derivative
     def f_deriv(x):
-        return c*m*np.e ** (m * x)
+        return m*np.e ** (c + m*x)
     
     return f, f_deriv
 
