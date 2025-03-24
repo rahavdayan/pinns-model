@@ -106,7 +106,7 @@ def dH_dx_noexp(x):
 
 # Magnetization
 def M(x):
-    return 0.3 * H_noexp(x)
+    return 0.55 * H_noexp(x)
     # xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     # return phi*M_d*L(xi)
 
@@ -172,7 +172,7 @@ def dt_dx_dim(x, x_c, droplet_size_idx):
 def physics_loss_dim(model: torch.nn.Module):
     xs_min, xs_max = [0, 0.012]
     # xs_min, xs_max = get_domain_dim(model.droplet_size_idx)
-    xs = torch.linspace(xs_min, xs_max, steps=100,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    xs = torch.linspace(xs_min, xs_max, steps=1000,).view(-1, 1).requires_grad_(True).to(DEVICE)
     ts = model(xs)
     dt = grad(ts, xs)[0]
     pde = dt_dx_dim(xs, x_c, model.droplet_size_idx) - dt
