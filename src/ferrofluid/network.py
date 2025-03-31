@@ -39,13 +39,13 @@ class Net(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Linear(input_dim, self.n_units),
-            nn.ReLU(),
+            nn.SiLU(),
             nn.Linear(self.n_units, self.n_units),
-            nn.ReLU(),
+            nn.SiLU(),
             nn.Linear(self.n_units, self.n_units),
-            nn.ReLU(),
+            nn.SiLU(),
             nn.Linear(self.n_units, self.n_units),
-            nn.ReLU(),
+            nn.SiLU(),
         )
         self.out = nn.Linear(self.n_units, output_dim)
 

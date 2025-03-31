@@ -14,4 +14,4 @@ def grad(outputs, inputs):
     )
 
 def exponential_decay(time, x0):
-    return x0 * np.exp(-time)
+    return x0 * np.exp(time)
