@@ -106,7 +106,7 @@ def dH_dx_noexp(x):
 
 # Magnetization
 def M(x):
-    return 0.45 * H_noexp(x)
+    return 0.5 * H_noexp(x)
     # xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     # return phi*M_d*L(xi)
 
