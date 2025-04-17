@@ -50,21 +50,22 @@ def grad(outputs, inputs):
         outputs, inputs, grad_outputs=torch.ones_like(outputs), create_graph=True
     )
 
-def grab_training_data():
+def grab_training_data(real = False):
     # get training data csvs
-    droplet_files_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
-    dim_data = [None] * len(droplet_files_names)
+    if real:
+        droplet_file_names = ['averages_1mm.csv', 'averages_15mm.csv', 'averages_2mm.csv', 'averages_25mm.csv', 'averages_3mm.csv', 'averages_35mm.csv', 'averages_4mm.csv']
+    else:
+        droplet_files_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
+    file_length = len(droplet_files_names)
+    dim_data = [None] * file_length
     
     # store csv for each size droplet into an array, one for dimensionalized data and one for nondimensionalized
-    for i in range (0, len(droplet_files_names)):
-        dim_data[i] = pd.read_csv('./droplet_data/' + droplet_files_names[i])
-        
+    for i in range (0, file_length):
+        dim_data[i] = pd.read_csv('./droplet_data/' + droplet_file_names[i])
+            
         # Grab every tenth row
-        dim_data[i] = dim_data[i][dim_data[i]['DISTANCE'] < 0.008]
-        dim_data[i] = dim_data[i][dim_data[i].index % 35 == 0]
-        
-        # exclude first row because of issues with (0, 0)
-        dim_data[i] = dim_data[i].loc[1:]
+        # dim_data[i] = dim_data[i][dim_data[i]['DISTANCE'] < 0.008]
+        # dim_data[i] = dim_data[i][dim_data[i].index % 35 == 0]
     
     return dim_data
 
