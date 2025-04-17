@@ -52,11 +52,12 @@ def grad(outputs, inputs):
 
 def grab_training_data(real = False):
     # get training data csvs
+    droplet_file_names = []
     if real:
-        droplet_file_names = ['averages_1mm.csv', 'averages_15mm.csv', 'averages_2mm.csv', 'averages_25mm.csv', 'averages_3mm.csv', 'averages_35mm.csv', 'averages_4mm.csv']
+        droplet_file_names = ['averages_1mm.csv', 'averages_2mm.csv', 'averages_3mm.csv', 'averages_4mm.csv']
     else:
-        droplet_files_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
-    file_length = len(droplet_files_names)
+        droplet_file_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
+    file_length = len(droplet_file_names)
     dim_data = [None] * file_length
     
     # store csv for each size droplet into an array, one for dimensionalized data and one for nondimensionalized
@@ -107,7 +108,7 @@ def dH_dx_noexp(x):
 
 # Magnetization
 def M(x):
-    return 0.5 * H_noexp(x)
+    return 350 * H_noexp(x)
     # xi = ((torch.pi*mu_0*M_d*(d**3))/(6*k_B*T)) * H(x, x_c)
     # return phi*M_d*L(xi)
 
@@ -171,7 +172,7 @@ def dt_dx_dim(x, x_c, droplet_size_idx):
     return  -(6*np.pi*r[droplet_size_idx]*eta) / (V[droplet_size_idx]*M(x)*mu_0*dH_dx_noexp(x))
 
 def physics_loss_dim(model: torch.nn.Module):
-    xs_min, xs_max = [0, 0.012]
+    xs_min, xs_max = [0, 0.02]
     # xs_min, xs_max = get_domain_dim(model.droplet_size_idx)
     xs = torch.linspace(xs_min, xs_max, steps=100,).view(-1, 1).requires_grad_(True).to(DEVICE)
     ts = model(xs)
