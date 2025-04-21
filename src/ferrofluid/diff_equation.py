@@ -64,9 +64,7 @@ def grab_training_data(real = False):
     for i in range (0, file_length):
         dim_data[i] = pd.read_csv('./droplet_data/' + droplet_file_names[i])
             
-        # Grab every tenth row
-        # dim_data[i] = dim_data[i][dim_data[i]['DISTANCE'] < 0.008]
-        # dim_data[i] = dim_data[i][dim_data[i].index % 35 == 0]
+         
     
     return dim_data
 
