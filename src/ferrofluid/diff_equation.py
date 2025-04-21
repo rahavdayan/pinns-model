@@ -63,10 +63,12 @@ def grab_training_data(real = False):
     # store csv for each size droplet into an array, one for dimensionalized data and one for nondimensionalized
     for i in range (0, file_length):
         dim_data[i] = pd.read_csv('./droplet_data/' + droplet_file_names[i])
-            
-         
-    
-    return dim_data
+
+        # Split into train and test sets
+        train_data = dim_data[i][dim_data[i]['DISTANCE'] < 0.014]
+        test_data = dim_data[i][dim_data[i]['DISTANCE'] >= 0.014]
+
+    return train_data, test_data
 
 # H(x) polynomial coefficients from highest deg to lowest, x is measured in m and H in A/m
 a_i = [
@@ -131,7 +133,7 @@ def dt_dx_dim(t, x, droplet_size_idx):
     return -(6*np.pi*r[droplet_size_idx]*eta) / (V[droplet_size_idx]*M(x)*mu_0*dH_dx(x))
 
 def physics_loss_dim(model: torch.nn.Module):
-    xs_min, xs_max = get_domain_dim(model.droplet_size_idx)
+    xs_min, xs_max = 0, 0.03
     xs = torch.linspace(xs_min, xs_max, steps=num_eval_points,).view(-1, 1).requires_grad_(True).to(DEVICE)
     ts = model(xs)
     dx = grad(ts, xs)[0]
