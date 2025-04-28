@@ -59,14 +59,16 @@ def grab_training_data(real = False):
         droplet_file_names = ['droplet_1mm.csv', 'droplet_2mm.csv', 'droplet_3mm.csv', 'droplet_4mm.csv']
     file_length = len(droplet_file_names)
     dim_data = [None] * file_length
+    train_data = [None] * file_length
+    test_data = [None] * file_length
     
     # store csv for each size droplet into an array, one for dimensionalized data and one for nondimensionalized
     for i in range (0, file_length):
         dim_data[i] = pd.read_csv('./droplet_data/' + droplet_file_names[i])
 
         # Split into train and test sets
-        train_data = dim_data[i][dim_data[i]['DISTANCE'] < 0.014]
-        test_data = dim_data[i][dim_data[i]['DISTANCE'] >= 0.014]
+        train_data[i] = dim_data[i][dim_data[i]['DISTANCE'] < 0.014]
+        test_data[i] = dim_data[i][dim_data[i]['DISTANCE'] >= 0.014]
 
     return train_data, test_data
 

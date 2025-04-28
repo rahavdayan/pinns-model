@@ -24,7 +24,8 @@ class Net(nn.Module):
         loss2=None,
         loss1_weight=0.1,
         loss2_weight=0.1,
-        droplet_size_idx=0
+        droplet_size_idx=0,
+        batch_size=None
     ) -> None:
         super().__init__()
 
@@ -36,6 +37,7 @@ class Net(nn.Module):
         self.lr = lr
         self.n_units = n_units
         self.droplet_size_idx = droplet_size_idx
+        self.batch_size = batch_size
 
         self.layers = nn.Sequential(
             nn.Linear(input_dim, self.n_units),
@@ -58,27 +60,38 @@ class Net(nn.Module):
     def fit(self, X, y):
         Xt = np_to_th(X)
         yt = np_to_th(y)
+
+        dataset = thdat.TensorDataset(Xt, yt)
+        if self.batch_size:
+            loader = thdat.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        else:
+            loader = [(Xt, yt)]  # fallback to full-batch SGD
+
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
         losses = []
 
         for ep in range(self.epochs):
-            optimiser.zero_grad()
-            outputs = self.forward(Xt)
-            data_loss = self.loss1_weight * self.loss(yt, outputs)
+            epoch_loss = 0
+            for batch_X, batch_y in loader:
+                optimiser.zero_grad()
+                outputs = self.forward(batch_X)
+                data_loss = self.loss1_weight * self.loss(batch_y, outputs)
 
-            if self.loss2:
-                physics_loss = self.loss2_weight * self.loss2(self)
-                loss = data_loss + physics_loss
-            else:
-                loss = data_loss
+                if self.loss2:
+                    physics_loss = self.loss2_weight * self.loss2(self)
+                    loss = data_loss + physics_loss
+                else:
+                    loss = data_loss
+
+                loss.backward()
+                optimiser.step()
+                epoch_loss += loss.item()
             
-            loss.backward()
-            optimiser.step()
-            losses.append(loss.item())
+            losses.append(epoch_loss)
 
             if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
-                print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
+                print(f"Epoch {ep+1}/{self.epochs}, total loss: {epoch_loss}")
         return losses
 
     def predict(self, X):
