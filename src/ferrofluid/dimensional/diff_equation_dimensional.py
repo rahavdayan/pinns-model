@@ -8,7 +8,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # use the magnetic field data to create an exponential fit
 def exponential_fit():
     # Load the CSV data
-    with open('./droplet_data/magnetic_field_data.csv', 'r') as f:
+    with open('../droplet_data/magnetic_field_data.csv', 'r') as f:
         reader = csv.reader(f)
         data = np.array(list(reader), dtype=float)
     
@@ -37,7 +37,7 @@ def get_domain_dim(droplet_size_idx):
     min_value = dim_data[droplet_size_idx]["DISTANCE"].min()
     max_value = dim_data[droplet_size_idx]["DISTANCE"].max()
     # this extends the domain by 20% the original interval to the right
-    return min_value, max_value + (max_value - min_value)*0.2
+    return min_value, max_value + (max_value - min_value)*(dom_ext / 100)
 
 def grad(outputs, inputs):
     """Computes the partial derivative of 
@@ -96,10 +96,8 @@ phi = 1/4                                                       # volume fractio
 exp, exp_deriv = exponential_fit()                              # Exponential fit to the magnetic field data and its derivtive
 dim_data = grab_training_data()
 x_c = 0.02                                                      # Cutoff value for piecewise H(x) and dH_dx(x) in default units, mm
-
-# Langevin function
-def L(xi):
-    return 1/torch.tanh(xi) - 1/xi
+k = 0.003                                                       # Value of k for M(x) = k*H(x)
+dom_ext = 40                                                    # Percentage in which domain of evaluation of physics loss is extended from the domain of the training data
 
 def H_noexp(x):
     return a_i[0] * x**(5) + a_i[1] * x**(4) + a_i[2] * x**(3) + a_i[3] * x**(2) + a_i[4] * x + a_i[5]
