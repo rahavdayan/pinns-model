@@ -1,4 +1,3 @@
-
 # PINNs Model
 
 This project sets up a Python development environment in Visual Studio Code (VSCode) for running a Physics-Informed Neural Network (PINNs) on our magnet problem.
@@ -25,6 +24,11 @@ cd pinns-model
 Follow the official [VSCode Python Tutorial](https://code.visualstudio.com/docs/python/python-tutorial) to install Python support.
 
 You can use either **standard Python** or **Anaconda**.
+
+> **🔧 Important:** If you don’t already have Python installed on your system, [download and install Python](https://www.python.org/downloads/) before continuing. Make sure to:
+> - Check the box **“Add Python to PATH”** during installation.
+> - Confirm that you can run `python` and `pip` from your terminal or command prompt.
+> - This allows VSCode to detect the interpreter for your virtual environment.
 
 ### 3. Create and Activate a Virtual Environment
 
