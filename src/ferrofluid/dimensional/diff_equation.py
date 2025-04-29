@@ -4,23 +4,26 @@ import pandas as pd
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# @param dim_data (list of pandas.DataFrame): List of droplet datasets loaded from CSVs.
-# @param droplet_size_idx (int): Index of the droplet size (0-3) to select corresponding dimensionalized data.
-# @return (tuple): A tuple (min_value, extended_max_value) representing the domain range for that droplet size.
-def get_domain_dim(dim_data, droplet_size_idx):
-    min_value = dim_data[droplet_size_idx]["DISTANCE"].min()
-    max_value = dim_data[droplet_size_idx]["DISTANCE"].max()
+def get_domain_dim():
+    min_value = train[0]['DISTANCE'].min()
+    max_value = train[0]['DISTANCE'].max()
     # Extend the domain by a percentage (dom_ext) of the original interval
     return min_value, max_value + (max_value - min_value) * (dom_ext / 100)
 
 # gradient computation for physics loss
 def grad(outputs, inputs):
+    """Computes the partial derivative of 
+    an output with respect to an input.
+    Args:
+        outputs: (N, 1) tensor
+        inputs: (N, D) tensor
+    """
     return torch.autograd.grad(
         outputs, inputs, grad_outputs=torch.ones_like(outputs), create_graph=True
-    )[0]
+    )
 
 # @param experimental_data (bool): If True, loads experimental droplet data. If False, loads paper data. Default is True.
-# @param split_fn (function): A function that takes a pandas DataFrame and returns (train_df, test_df). 
+# @param split_fn (function): A function that splits a pandas DataFrame into training and test data. 
 #                              If None, defaults to splitting where 'DISTANCE' < 0.014.
 def grab_training_data(experimental_data=True, split_fn=None):
     droplet_file_names = []
@@ -57,6 +60,8 @@ eta = 50                                                        # Viscosity in [
 k = 245                                                         # Value of k for M(x) = k*H(x)
 dom_ext = 40                                                    # Percentage in which domain of evaluation of physics loss is extended from the domain of the training data
 num_eval_points = 50                                            # Number of evaluation points points when determining physics loss
+train, test, legend = grab_training_data()                      # Grab training data
+lb, ub = get_domain_dim()                                       # Define interval over which to take physics loss
 
 # H(x) coefficients, it is in the form H(x) = m*(x+c)^(-n)
 m = 0.15412679903407128234604783756367
@@ -81,8 +86,7 @@ def dt_dx_dim(t, x, droplet_size_idx):
 
 # calculates physics loss for model to learn from
 def physics_loss_dim(model: torch.nn.Module):
-    xs_min, xs_max = 0, 0.03
-    xs = torch.linspace(xs_min, xs_max, steps=num_eval_points,).view(-1, 1).requires_grad_(True).to(DEVICE)
+    xs = torch.linspace(lb, ub, steps=num_eval_points,).view(-1, 1).requires_grad_(True).to(DEVICE)
     ts = model(xs)
     dx = grad(ts, xs)[0]
     pde = dt_dx_dim(ts, xs, model.droplet_size_idx) - dx

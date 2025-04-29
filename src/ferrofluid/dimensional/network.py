@@ -69,10 +69,11 @@ class Net(nn.Module):
 
         optimiser = optim.Adam(self.parameters(), lr=self.lr)
         self.train()
-        losses = []
+        tot_losses = []
+        data_losses = []
+        physics_losses = []
 
         for ep in range(self.epochs):
-            epoch_loss = 0
             for batch_X, batch_y in loader:
                 optimiser.zero_grad()
                 outputs = self.forward(batch_X)
@@ -86,13 +87,14 @@ class Net(nn.Module):
 
                 loss.backward()
                 optimiser.step()
-                epoch_loss += loss.item()
             
-            losses.append(epoch_loss)
+            tot_losses.append(loss.cpu().detach().numpy())
+            data_losses.append(data_loss.cpu().detach().numpy())
+            physics_losses.append(physics_loss.cpu().detach().numpy())
 
             if (ep+1) % int(self.epochs / 10) == 0 or (ep >= 0 and ep < 10):
-                print(f"Epoch {ep+1}/{self.epochs}, total loss: {epoch_loss}")
-        return losses
+                print(f"Epoch {ep+1}/{self.epochs}, data loss: {data_loss}, physics loss: {physics_loss}")
+        return data_losses, physics_loss, tot_losses
 
     def predict(self, X):
         self.eval()
